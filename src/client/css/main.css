@@ -1,0 +1,21 @@
+:root {
+	color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	body {
+		background: #333333aa;
+		color: white;
+	}
+}
+
+@media (prefers-color-scheme: light) {
+	body {
+		background: #ddddddaa;
+		color: black;
+	}
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
