@@ -21,9 +21,10 @@ if (__dirname.includes('node_modules')) {
 	isDev = true
 }
 
+var isElectron = process.execPath.includes('electron')
+
 const port: number = Number(process.env.PORT) || 3000
 const privateHost: boolean = false
-
 
 export class AppServer extends EventTarget {
 	private port: number
@@ -40,16 +41,18 @@ export class AppServer extends EventTarget {
 		this.port = port
 		this.server = null
 
-		const clientPath = path.resolve(__dirname, '../client_window')
+		console.log(isElectron)
+		console.log(__dirname)
+		console.log(__filename)
+		const client_folder = isElectron ? 'client_window' : 'client'
+		const clientPath = path.resolve(__dirname, '..', client_folder)
 		this.app = express()
-		this.app.use('/client_window', express.static(clientPath))
+		this.app.use('/' + client_folder, express.static(clientPath))
 		this.app.use('/images', express.static(path.join(clientPath, 'images')))
 		this.app.get('/', (req, res) => {
 			res.sendFile(path.resolve(clientPath, 'index.html'))
 		})
 	}
-
-
 
 	public Start() {
 		this.server = new http.Server(this.app)

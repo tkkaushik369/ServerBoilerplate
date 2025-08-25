@@ -6,11 +6,18 @@
 	"main": ".webpack/main",
 	"scripts": {
 		"setup": "npm install && npm fund && npm run build",
-		"build": "webpack --config ./src/webpack.prod.js && tsc --project ./src/server/tsconfig.server.json",
-		"dev": "concurrently -k \"tsc -p ./src/server -w\" \"nodemon ./dist/server/server.js\" \"webpack serve --config ./src/webpack.dev.js\"",
+		"build:client": "webpack --config ./src/webpack.prod.client.ts",
+		"build:server": "webpack --config ./src/webpack.prod.server.ts",
+		"build:turbo": "turbo run build_struct",
+		"build": "concurrently -k \"npm run build:client && npm run build:server\"",
+		"dev": "concurrently -k \"webpack serve --config ./src/webpack.dev.ts\"",
+		"dev:client": "webpack serve --config ./src/webpack.dev.client.ts",
+		"dev:server": "webpack serve --config ./src/webpack.dev.server.ts",
+		"dev:server:start": "nodemon --watch dist ./dist/server/server.js",
 		"start:server": "node ./dist/server/server.js",
 		"fcm": "node forgeConfigMaker.js",
-		"start": "npm run fcm && electron-forge start",
+		"start:nw": "npm run fcm && electron-forge start",
+		"start": "electron-forge start",
 		"package": "electron-forge package",
 		"make": "electron-forge make",
 		"publish": "electron-forge publish",
@@ -23,6 +30,7 @@
 		"email": "krishnakaushiktiruveedula369@gmail.com"
 	},
 	"license": "MIT",
+	"packageManager": "npm@8.5.0",
 	"devDependencies": {
 		"@electron-forge/cli": "^7.5.0",
 		"@electron-forge/maker-deb": "^7.5.0",
@@ -37,7 +45,7 @@
 		"@types/debug": "^4.1.12",
 		"@types/electron-squirrel-startup": "^1.0.2",
 		"@types/express": "^4.17.21",
-		"@types/node": "^22.9.0",
+		"@types/node": "^22.18.0",
 		"@typescript-eslint/eslint-plugin": "^8.14.0",
 		"@typescript-eslint/parser": "^8.14.0",
 		"@vercel/webpack-asset-relocator-loader": "1.7.3",
@@ -50,7 +58,7 @@
 		"fork-ts-checker-webpack-plugin": "^9.0.2",
 		"html-webpack-plugin": "^5.6.3",
 		"node-loader": "^2.1.0",
-		"nodemon": "^3.1.7",
+		"nodemon": "^3.1.10",
 		"style-loader": "^4.0.0",
 		"ts-loader": "^9.5.1",
 		"ts-node": "^10.9.2",
@@ -62,7 +70,8 @@
 	},
 	"dependencies": {
 		"electron-squirrel-startup": "^1.0.1",
-		"express": "^4.21.1"
+		"express": "^4.21.1",
+		"turbo": "^2.5.6"
 	},
 	"optionalDependencies": {
 		"bufferutil": "^4.0.8",

@@ -1,0 +1,21 @@
+{
+	"$schema": "https://turborepo.com/schema.json",
+	"tasks": {
+		"build:server": {
+			"inputs": ["src/server/**", "src/*"],
+			"outputs": ["dist/server/**"]
+		},
+		"build:client": {
+			"inputs": ["src/client/**", "src/*"],
+			"outputs": ["dist/client/**"]
+		},
+		"build_struct": {
+			"dependsOn": ["build:server", "build:client"],
+			"outputs": []
+		},
+		"dev": {
+			"persistent": true,
+			"cache": false
+		}
+	}
+}
