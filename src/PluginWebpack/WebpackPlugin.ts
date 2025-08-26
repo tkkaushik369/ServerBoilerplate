@@ -1,18 +1,19 @@
-import crypto from 'crypto'
-import http from 'http'
-import path from 'path'
+import crypto from 'node:crypto'
+import http from 'node:http'
+import path from 'node:path'
 import { pipeline } from 'stream/promises'
 
 import { getElectronVersion, listrCompatibleRebuildHook } from '@electron-forge/core-utils'
 import { namedHookWithTaskFn, PluginBase } from '@electron-forge/plugin-base'
-import { ForgeMultiHookMap, ListrTask, ResolvedForgeConfig, StartResult } from '@electron-forge/shared-types'
-import Logger, { Tab } from '@electron-forge/web-multi-logger'
+import { ForgeMultiHookMap, ListrTask, ResolvedForgeConfig } from '@electron-forge/shared-types'
+import Logger, { Tab } from '../web-multi-logger/Logger'
 import chalk from 'chalk'
 import debug from 'debug'
 import glob from 'fast-glob'
 import fs from 'fs-extra'
 import { PRESET_TIMER } from 'listr2'
 import webpack, { Configuration, Watching } from 'webpack'
+// eslint-disable-next-line import/default
 import WebpackDevServer from 'webpack-dev-server'
 import { merge } from 'webpack-merge'
 
@@ -70,7 +71,6 @@ export default class WebpackPlugin extends PluginBase<WebpackPluginConfig> {
 			}
 		}
 
-		this.startLogic = this.startLogic.bind(this)
 		this.getHooks = this.getHooks.bind(this)
 	}
 
@@ -129,30 +129,35 @@ export default class WebpackPlugin extends PluginBase<WebpackPluginConfig> {
 		rendererOptions: WebpackPluginRendererConfig | null
 	): Promise<webpack.MultiStats | undefined> =>
 		new Promise((resolve, reject) => {
-			webpack(options).run(async (err, stats) => {
-				if (rendererOptions && rendererOptions.jsonStats) {
-					for (const [index, entryStats] of (stats?.stats ?? []).entries()) {
-						const name = rendererOptions.entryPoints[index].name
-						await this.writeJSONStats(
-							'renderer',
-							entryStats,
-							options[index].stats as WebpackToJsonOptions,
-							name
-						)
+			const compiler = webpack(options)
+			if (compiler !== null) {
+				compiler.run(async (err, stats) => {
+					if (rendererOptions && rendererOptions.jsonStats) {
+						for (const [index, entryStats] of (stats?.stats ?? []).entries()) {
+							const name = rendererOptions.entryPoints[index].name
+							await this.writeJSONStats(
+								'renderer',
+								entryStats,
+								options[index].stats as WebpackToJsonOptions,
+								name
+							)
+						}
 					}
-				}
-				if (err) {
-					return reject(err)
-				}
-				return resolve(stats)
-			})
+					if (err) {
+						return reject(err)
+					}
+					return resolve(stats)
+				})
+			}
 		})
 
 	init = (dir: string): void => {
 		this.setDirectories(dir)
 
 		d('hooking process events')
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		process.on('exit', (_code) => this.exitHandler({ cleanup: true }))
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		process.on('SIGINT' as NodeJS.Signals, (_signal) => this.exitHandler({ exit: true }))
 	}
 
@@ -171,6 +176,41 @@ export default class WebpackPlugin extends PluginBase<WebpackPluginConfig> {
 
 	getHooks(): ForgeMultiHookMap {
 		return {
+			preStart: [
+				namedHookWithTaskFn<'preStart'>(async (task) => {
+					if (this.alreadyStarted) return
+					this.alreadyStarted = true
+
+					await fs.remove(this.baseDir)
+
+					const logger = new Logger(this.loggerPort)
+					this.loggers.push(logger)
+					await logger.start()
+
+					return task?.newListr([
+						{
+							title: 'Compiling main process code',
+							task: async () => {
+								await this.compileMain(true, logger)
+							},
+							rendererOptions: {
+								timer: { ...PRESET_TIMER },
+							},
+						},
+						{
+							title: 'Launching dev servers for renderer process code',
+							task: async (_, task) => {
+								await this.launchRendererDevServers(logger)
+								task.output = `Output Available: ${chalk.cyan(`http://localhost:${this.loggerPort}`)}\n`
+							},
+							rendererOptions: {
+								persistentOutput: true,
+								timer: { ...PRESET_TIMER },
+							},
+						},
+					])
+				}, 'Preparing webpack bundles'),
+			],
 			prePackage: [
 				namedHookWithTaskFn<'prePackage'>(async (task, config, platform, arch) => {
 					if (!task) {
@@ -396,7 +436,7 @@ export default class WebpackPlugin extends PluginBase<WebpackPluginConfig> {
 											)
 										},
 									},
-							  ]
+							]
 
 					return task.newListr<NativeDepsCtx>(
 						[
@@ -564,10 +604,12 @@ the generated files). Instead, it is ${JSON.stringify(pj.main)}`)
 
 				return onceResolve(undefined)
 			}
-			if (watch) {
-				this.watchers.push(compiler.watch({}, cb))
-			} else {
-				compiler.run(cb)
+			if (compiler !== null) {
+				if (watch) {
+					this.watchers.push(compiler.watch({}, cb))
+				} else {
+					compiler.run(cb)
+				}
 			}
 		})
 	}
@@ -629,21 +671,24 @@ the generated files). Instead, it is ${JSON.stringify(pj.main)}`)
 
 		const compiler = webpack(configs)
 
-		const promises = preloadPlugins.map((preloadPlugin) => {
-			return new Promise((resolve, reject) => {
-				compiler.hooks.done.tap(preloadPlugin, (stats) => {
-					if (stats.hasErrors()) {
-						return reject(new Error(`Compilation errors in the preload: ${stats.toString()}`))
-					}
-					return resolve(undefined)
+		if (compiler) {
+			const promises = preloadPlugins.map((preloadPlugin) => {
+				return new Promise((resolve, reject) => {
+					compiler.hooks.done.tap(preloadPlugin, (stats) => {
+						if (stats.hasErrors()) {
+							return reject(new Error(`Compilation errors in the preload: ${stats.toString()}`))
+						}
+						return resolve(undefined)
+					})
 				})
 			})
-		})
 
-		const webpackDevServer = new WebpackDevServer(this.devServerOptions(), compiler)
-		await webpackDevServer.start()
-		this.servers.push(webpackDevServer.server!)
-		await Promise.all(promises)
+			const webpackDevServer = new WebpackDevServer(this.devServerOptions(), compiler)
+			await webpackDevServer.start()
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			this.servers.push(webpackDevServer.server!)
+			await Promise.all(promises)
+		}
 	}
 
 	devServerOptions(): WebpackDevServer.Configuration {
@@ -672,43 +717,6 @@ the generated files). Instead, it is ${JSON.stringify(pj.main)}`)
 	}
 
 	private alreadyStarted = false
-
-	async startLogic(): Promise<StartResult> {
-		if (this.alreadyStarted) return false
-		this.alreadyStarted = true
-
-		await fs.remove(this.baseDir)
-
-		const logger = new Logger(this.loggerPort)
-		this.loggers.push(logger)
-		await logger.start()
-
-		return {
-			tasks: [
-				{
-					title: 'Compiling main process code',
-					task: async () => {
-						await this.compileMain(true, logger)
-					},
-					rendererOptions: {
-						timer: { ...PRESET_TIMER },
-					},
-				},
-				{
-					title: 'Launching dev servers for renderer process code',
-					task: async (_, task) => {
-						await this.launchRendererDevServers(logger)
-						task.output = `Output Available: ${chalk.cyan(`http://localhost:${this.loggerPort}`)}\n`
-					},
-					rendererOptions: {
-						persistentOutput: true,
-						timer: { ...PRESET_TIMER },
-					},
-				},
-			],
-			result: false,
-		}
-	}
 }
 
 export { WebpackPlugin, WebpackPluginConfig }

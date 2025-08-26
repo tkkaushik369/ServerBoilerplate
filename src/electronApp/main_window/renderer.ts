@@ -2,7 +2,7 @@ import '../../client/css/main.css'
 import { SetDarkMode, SetLightMode, initPreload } from './preload'
 import { AppServer } from '../../server/server'
 
-var appServer: AppServer | null = null
+let appServer: AppServer | null = null
 
 initPreload()
 SetLightMode()

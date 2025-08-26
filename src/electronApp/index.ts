@@ -6,17 +6,22 @@ import { app, BrowserWindow, ipcMain, nativeTheme, screen } from 'electron'
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const CLIENT_WINDOW_WEBPACK_ENTRY: string
 
+process.env.FRAME_VISBLE = 'true' // 'true' or 'false'
+
 const QuitHandle = () => {
 	app.quit()
 }
 
-process.env.FRAME_VISBLE = 'true' // 'true' or 'false'
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) {
+	app.quit()
+}
 
 const createBrowserWindow = (path: string, x?: number, y?: number, devTools?: Electron.OpenDevToolsOptions) => {
 	// Get the primary display's dimensions
 	const { width: screenWidth } = screen.getPrimaryDisplay().workAreaSize
-	var windowWidth = 600 // Set the window width
-	var windowHeight = 400 // Set the window height
+	const windowWidth = 600 // Set the window width
+	const windowHeight = 400 // Set the window height
 
 	// Create the browser window.
 	const frameLess = {
@@ -30,7 +35,7 @@ const createBrowserWindow = (path: string, x?: number, y?: number, devTools?: El
 		},
 	}
 
-	var browserOptions = {
+	const browserOptions = {
 		height: windowHeight,
 		width: windowWidth,
 		x: screenWidth - windowWidth - (x ?? 0),
@@ -41,7 +46,7 @@ const createBrowserWindow = (path: string, x?: number, y?: number, devTools?: El
 		},
 	}
 
-	var finalbrowserOptions = Object.assign({}, browserOptions)
+	let finalbrowserOptions = Object.assign({}, browserOptions)
 	if (process.env.FRAME_VISBLE !== 'true') {
 		finalbrowserOptions = Object.assign(finalbrowserOptions, frameLess)
 	}
@@ -66,7 +71,7 @@ const createWindow = (): void => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.on('ready', () => {
 	ipcMain.handle('ping', async () => {
 		return 'pong'
 	})
@@ -97,14 +102,6 @@ app.whenReady().then(() => {
 	})
 
 	createWindow()
-
-	app.on('activate', () => {
-		// On OS X it's common to re-create a window in the app when the
-		// dock icon is clicked and there are no other windows open.
-		if (BrowserWindow.getAllWindows().length === 0) {
-			createWindow()
-		}
-	})
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -112,6 +109,12 @@ app.whenReady().then(() => {
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') QuitHandle()
+})
+
+app.on('activate', () => {
+	// On OS X it's common to re-create a window in the app when the
+	// dock icon is clicked and there are no other windows open.
+	if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
 // In this file you can include the rest of your app's specific main process

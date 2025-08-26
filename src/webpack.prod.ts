@@ -1,9 +1,8 @@
-// const { merge } = require("webpack-merge")
-// const common = require("./webpack.common.js")
 import path from 'path'
+import type { Configuration } from 'webpack'
 
-export const production = {
-	mode: "production",
+export const production: Configuration = {
+	mode: 'production',
 	performance: {
 		hints: false,
 	},

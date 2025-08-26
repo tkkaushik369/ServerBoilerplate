@@ -1,9 +1,6 @@
-// const { merge } = require("webpack-merge")
-// const common = require("./webpack.common.js")
-// const path = require("path")
-// import path from "path"
+import type { Configuration } from 'webpack'
 
-export const development = {
+export const development: Configuration = {
 	mode: 'development',
 	devtool: 'eval-source-map',
 	devServer: {

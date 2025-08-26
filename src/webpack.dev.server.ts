@@ -4,7 +4,7 @@ import { development } from './webpack.dev'
 import { config_server } from './webpack.server'
 import path from 'path'
 
-const config = merge(config_common, development as any, config_server, {
+const config = merge(config_common, development, config_server, {
 	devServer: {
 		static: {
 			directory: path.join(__dirname, '../dist/server'),

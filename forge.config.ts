@@ -7,22 +7,17 @@ import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-nati
 import { WebpackPlugin } from './src/PluginWebpack/WebpackPlugin'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
-import webpackConfig from './src/ForgeConfig/forge.webpack.config'
+import WebpackConfig from './src/ForgeConfig/forge.webpack.config'
 
 const config: ForgeConfig = {
 	packagerConfig: {
 		asar: true,
 	},
 	rebuildConfig: {},
-	makers: [
-		new MakerSquirrel({}),
-		new MakerZIP({}, ['darwin']),
-		new MakerRpm({}),
-		new MakerDeb({}),
-	],
+	makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
 	plugins: [
 		new AutoUnpackNativesPlugin({}),
-		new WebpackPlugin(webpackConfig),
+		new WebpackPlugin(WebpackConfig),
 		// Fuses are used to enable/disable various Electron functionality
 		// at package time, before code signing the application
 		new FusesPlugin({

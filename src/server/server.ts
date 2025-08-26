@@ -9,22 +9,21 @@
 // visit http://127.0.0.1:3000
 
 import express from 'express'
-import path from 'path'
-import http from 'http'
+import path from 'node:path'
+import http from 'node:http'
 
 // Set the MIME type explicitly
-express.static.mime.define({ 'application/wasm': ['wasm'] })
+// express.static.mime.define({ 'application/wasm': ['wasm'] })
 
-var isDev = false
 if (__dirname.includes('node_modules')) {
+	// eslint-disable-next-line no-global-assign
 	__dirname = path.resolve(__dirname.split('node_modules')[0], '.webpack/renderer/main_window')
-	isDev = true
 }
 
-var isElectron = process.execPath.includes('electron')
+const isElectron = process.execPath.includes('electron')
 
 const port: number = Number(process.env.PORT) || 3000
-const privateHost: boolean = false
+const privateHost = false
 
 export class AppServer extends EventTarget {
 	private port: number

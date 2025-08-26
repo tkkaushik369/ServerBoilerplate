@@ -1,4 +1,4 @@
-import path from 'path'
+import path from 'node:path'
 
 import debug from 'debug'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
@@ -92,7 +92,7 @@ export default class WebpackConfigGenerator {
 
 		let rawConfig =
 			typeof config === 'string'
-				? // eslint-disable-next-line @typescript-eslint/no-var-requires
+				? // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 				  (require(path.resolve(this.projectDir, config)) as MaybeESM<Configuration | ConfigurationFactory>)
 				: config
 
@@ -235,7 +235,7 @@ export default class WebpackConfigGenerator {
 				entry.nodeIntegration ?? rendererOptions.nodeIntegration
 					? rendererOptions.nodeIntegration == RendererTargetType.ElectronRendererNode
 						? 'electronRendererNode'
-					: 'web'
+						: 'web'
 					: 'electronRenderer'
 			const preloadTarget =
 				entry.nodeIntegration ?? rendererOptions.nodeIntegration

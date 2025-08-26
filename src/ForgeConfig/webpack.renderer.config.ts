@@ -1,5 +1,5 @@
 import type { Configuration } from 'webpack'
-import path from 'node:path'
+
 import { rules } from './webpack.rules'
 import { plugins } from './webpack.plugins'
 

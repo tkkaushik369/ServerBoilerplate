@@ -1,10 +1,9 @@
-import { WebpackPluginConfig } from '../PluginWebpack/Config'
+import { WebpackPluginConfig, RendererTargetType } from '../PluginWebpack/Config'
 import { merge } from 'webpack-merge'
 import { MainConfig } from './webpack.main.config'
 import { rendererConfig } from './webpack.renderer.config'
-import { RendererTargetType } from '../PluginWebpack/Config'
 
-var config: WebpackPluginConfig = {
+const config: WebpackPluginConfig = {
 	mainConfig: merge(MainConfig, {
 		/**
 		 * This is the main entry point for your application, it's the first file
